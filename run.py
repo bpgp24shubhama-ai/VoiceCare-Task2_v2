@@ -3,16 +3,23 @@
 VoiceCare.ai AI Growth Engine Agent - CLI Runner.
 
 Usage:
-    python run.py strategy          Run initial strategy generation
-    python run.py weekly N FOLLOWERS Run weekly cycle (week N, current followers)
-    python run.py content TYPE TOPIC Generate specific content
-    python run.py geo               Run GEO optimization suite
-    python run.py growth-hacks      Run growth hack generators
-    python run.py calendar N        Generate content calendar for week N
-    python run.py competitor NAME   Deep-dive competitor analysis
-    python run.py audit QUERY       Audit AI visibility for a search query
-    python run.py ask "QUESTION"    Ask any growth question with web search
-    python run.py interactive       Interactive chat mode
+    python run.py strategy              Run initial strategy generation
+    python run.py weekly N FOLLOWERS    Run weekly cycle (week N, current followers)
+    python run.py content TYPE TOPIC    Generate specific content
+    python run.py geo                   Run GEO optimization suite
+    python run.py growth-hacks          Run growth hack generators
+    python run.py calendar N            Generate content calendar for week N
+    python run.py competitor NAME       Deep-dive competitor analysis
+    python run.py audit QUERY           Audit AI visibility for a search query
+    python run.py ask "QUESTION"        Ask any growth question with web search
+    python run.py interactive           Interactive chat mode
+
+  SEMrush commands (requires SEMRUSH_API_KEY in .env):
+    python run.py semrush domain DOMAIN             Full domain report
+    python run.py semrush keyword KEYWORD           Keyword overview + SERP
+    python run.py semrush gap COMPETITOR            Keyword gap vs competitor
+    python run.py semrush keywords                  Keyword opportunity report
+    python run.py semrush landscape                 Full competitive landscape
 """
 
 import json
@@ -265,6 +272,135 @@ def interactive(config):
             break
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
+
+
+# ------------------------------------------------------------------ #
+# SEMrush command group                                                #
+# ------------------------------------------------------------------ #
+
+@cli.group()
+def semrush():
+    """SEMrush data commands (requires SEMRUSH_API_KEY in .env)."""
+    pass
+
+
+@semrush.command("domain")
+@click.argument("domain")
+@click.option("--db", default="us", help="SEMrush database (us, uk, ca, au, ...)")
+@click.option("--config", default="config.yaml", help="Path to config file")
+def semrush_domain(domain, db, config):
+    """Full domain report: traffic, authority, top keywords, backlinks."""
+    engine = GrowthEngineOrchestrator(config)
+    if not engine.semrush:
+        console.print("[bold red]SEMRUSH_API_KEY not set.[/bold red] Add it to your .env file.")
+        return
+    report = engine.semrush.full_domain_report(domain, database=db)
+    engine.analytics.save_output(report, f"semrush_domain_{domain.replace('.', '_')}")
+    print_result(report, f"SEMrush Domain Report: {domain}")
+
+
+@semrush.command("keyword")
+@click.argument("keyword")
+@click.option("--db", default="us", help="SEMrush database")
+@click.option("--config", default="config.yaml", help="Path to config file")
+def semrush_keyword(keyword, db, config):
+    """Keyword overview (volume, difficulty, CPC) + current SERP top-10."""
+    engine = GrowthEngineOrchestrator(config)
+    if not engine.semrush:
+        console.print("[bold red]SEMRUSH_API_KEY not set.[/bold red]")
+        return
+
+    overview = engine.semrush.keyword_overview(keyword, database=db)
+    serp = engine.semrush.serp_competitors(keyword, limit=10, database=db)
+    suggestions = engine.semrush.keyword_suggestions(keyword, limit=10, database=db)
+
+    result = {
+        "keyword": keyword,
+        "overview": overview,
+        "serp_top_10": serp,
+        "related_keywords": suggestions,
+    }
+    engine.analytics.save_output(result, f"semrush_keyword_{keyword[:30].replace(' ', '_')}")
+    print_result(result, f"SEMrush Keyword: {keyword}")
+
+
+@semrush.command("gap")
+@click.argument("competitor_name")
+@click.option("--config", default="config.yaml", help="Path to config file")
+def semrush_gap(competitor_name, config):
+    """Keyword gap analysis vs a competitor — keywords they rank for, we don't."""
+    engine = GrowthEngineOrchestrator(config)
+    if not engine.semrush:
+        console.print("[bold red]SEMRUSH_API_KEY not set.[/bold red]")
+        return
+    result = engine.competitor.semrush_keyword_gap_analysis(competitor_name)
+    engine.analytics.save_output(result, f"keyword_gap_{competitor_name}")
+    print_result(result, f"Keyword Gap vs {competitor_name}")
+
+
+@semrush.command("keywords")
+@click.option("--seeds", default="", help="Comma-separated seed keywords (overrides config)")
+@click.option("--config", default="config.yaml", help="Path to config file")
+def semrush_keywords(seeds, config):
+    """Keyword opportunity report — find and prioritise keywords to target."""
+    engine = GrowthEngineOrchestrator(config)
+    if not engine.semrush:
+        console.print("[bold red]SEMRUSH_API_KEY not set.[/bold red]")
+        return
+    seed_list = [s.strip() for s in seeds.split(",")] if seeds else None
+    result = engine.visibility.keyword_opportunity_report(seed_list)
+    engine.analytics.save_output(result, "keyword_opportunities")
+    print_result(result, "Keyword Opportunity Report")
+
+
+@semrush.command("landscape")
+@click.option("--db", default="us", help="SEMrush database")
+@click.option("--config", default="config.yaml", help="Path to config file")
+def semrush_landscape(db, config):
+    """Full competitive landscape — SEMrush metrics for VoiceCare.ai + all competitors."""
+    engine = GrowthEngineOrchestrator(config)
+    if not engine.semrush:
+        console.print("[bold red]SEMRUSH_API_KEY not set.[/bold red]")
+        return
+
+    our_domain = (
+        engine.config.get("company", {})
+        .get("website", "voicecare.ai")
+        .replace("https://", "").replace("http://", "").rstrip("/")
+    )
+    competitor_domains = [
+        c["website"].replace("https://", "").replace("http://", "").rstrip("/")
+        for c in engine.config.get("competitors", [])
+    ]
+
+    console.print("[dim]Fetching SEMrush data for all domains (this may take ~30s)...[/dim]")
+    landscape = engine.semrush.competitive_landscape(our_domain, competitor_domains, database=db)
+    engine.analytics.save_output(landscape, "semrush_landscape")
+
+    # Pretty-print as a table
+    table = Table(title="SEMrush Competitive Landscape", show_lines=True)
+    table.add_column("Domain", style="bold cyan")
+    table.add_column("Org. Traffic", justify="right")
+    table.add_column("Org. Keywords", justify="right")
+    table.add_column("Authority", justify="right")
+    table.add_column("Backlinks", justify="right")
+    table.add_column("Ref. Domains", justify="right")
+
+    for domain, report in landscape.items():
+        ov = report.get("overview", {})
+        bl = report.get("backlinks", {})
+        label = f"[green]{domain}[/green]" if domain == our_domain else domain
+        table.add_row(
+            label,
+            ov.get("Ot", "N/A"),
+            ov.get("Or", "N/A"),
+            ov.get("Rk", "N/A"),
+            bl.get("total", "N/A"),
+            bl.get("domains_num", "N/A"),
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Full data saved to data/output/[/dim]")
 
 
 if __name__ == "__main__":

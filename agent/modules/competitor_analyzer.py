@@ -1,9 +1,12 @@
 """
 Competitor Analysis Module.
 
-Uses GPT-5 web search to perform real-time competitive intelligence
-on voice AI / contact center competitors, analyzing their LinkedIn
-strategies, content patterns, and AI engine visibility.
+Uses GPT-5 web search + SEMrush real data to perform competitive
+intelligence on voice AI / contact center competitors, analyzing their
+LinkedIn strategies, content patterns, and AI engine visibility.
+
+SEMrush enriches every analysis with hard numbers: organic traffic,
+keyword rankings, backlink authority, and keyword gaps.
 """
 
 import json
@@ -15,12 +18,56 @@ logger = logging.getLogger(__name__)
 
 
 class CompetitorAnalyzer:
-    """Analyze competitors using GPT-5 with live web search."""
+    """Analyze competitors using GPT-5 + SEMrush live data."""
 
-    def __init__(self, ai_engine, config: dict):
+    def __init__(self, ai_engine, config: dict, semrush=None):
         self.ai = ai_engine
         self.config = config
         self.competitors = config.get("competitors", [])
+        self.semrush = semrush  # optional SEMrushClient
+
+    # ------------------------------------------------------------------ #
+    # Internal helper                                                      #
+    # ------------------------------------------------------------------ #
+
+    def _semrush_section(self, our_domain: str) -> str:
+        """Fetch SEMrush data for all domains and format as a prompt block.
+
+        Returns an empty string if SEMrush is not configured.
+        """
+        if not self.semrush:
+            return ""
+
+        competitor_domains = [
+            c["website"].replace("https://", "").replace("http://", "").rstrip("/")
+            for c in self.competitors
+        ]
+        our_domain_clean = our_domain.replace("https://", "").replace("http://", "").rstrip("/")
+
+        try:
+            logger.info("Fetching SEMrush competitive landscape data...")
+            landscape = self.semrush.competitive_landscape(our_domain_clean, competitor_domains)
+        except Exception as e:
+            logger.warning(f"SEMrush data fetch failed: {e}")
+            return ""
+
+        lines = ["\n## REAL SEMrush Data (use these exact figures in your analysis)\n"]
+        for domain, report in landscape.items():
+            ov = report.get("overview", {})
+            kws = report.get("top_keywords", [])
+            bl = report.get("backlinks", {})
+            lines.append(f"### {domain}")
+            lines.append(f"- Organic Keywords: {ov.get('Or', 'N/A')}")
+            lines.append(f"- Monthly Organic Traffic: {ov.get('Ot', 'N/A')}")
+            lines.append(f"- Authority Score: {ov.get('Rk', 'N/A')}")
+            lines.append(f"- Backlinks Total: {bl.get('total', 'N/A')}")
+            lines.append(f"- Referring Domains: {bl.get('domains_num', 'N/A')}")
+            if kws:
+                top3 = [(k.get("Ph", ""), k.get("Po", ""), k.get("Nq", "")) for k in kws[:3]]
+                kw_str = ", ".join(f'"{ph}" (pos {po}, vol {nq})' for ph, po, nq in top3)
+                lines.append(f"- Top keywords: {kw_str}")
+            lines.append("")
+        return "\n".join(lines)
 
     def full_competitive_analysis(self) -> dict:
         """Run a comprehensive competitive analysis across all competitors."""
@@ -28,29 +75,40 @@ class CompetitorAnalyzer:
             f"- {c['name']} ({c['website']}, LinkedIn: {c['linkedin']})"
             for c in self.competitors
         )
+        our_domain = self.config.get("company", {}).get("website", "voicecare.ai")
+        semrush_block = self._semrush_section(our_domain)
 
         prompt = f"""Perform a comprehensive competitive analysis for VoiceCare.ai against these competitors in the voice AI / contact center AI space:
 
 {competitor_list}
-
+{semrush_block}
 Search the web for the LATEST information on each competitor. For each competitor, analyze:
 
-1. **LinkedIn Presence**: Estimated follower count, posting frequency, engagement rates, content themes
-2. **Content Strategy**: What types of content they post (thought leadership, product updates, case studies, videos, carousels), what gets the most engagement
-3. **AI Engine Visibility**: Search for each competitor on queries like "best voice analytics software", "AI contact center solutions" - who ranks where?
-4. **Recent News & Moves**: Latest funding, product launches, partnerships, awards
-5. **Weaknesses & Gaps**: Where are they underperforming? What topics are they NOT covering?
+1. **SEO & Traffic** (use the SEMrush figures above as ground truth — do NOT estimate traffic if real data is provided):
+   - Organic traffic, keyword count, authority score, backlinks
+   - Top-ranking keywords and content pages
+2. **LinkedIn Presence**: Estimated follower count, posting frequency, engagement rates, content themes
+3. **Content Strategy**: What types of content they post (thought leadership, product updates, case studies, videos, carousels), what gets the most engagement
+4. **AI Engine Visibility**: Search for each competitor on queries like "best voice analytics software", "AI contact center solutions" - who ranks where?
+5. **Recent News & Moves**: Latest funding, product launches, partnerships, awards
+6. **Weaknesses & Gaps**: Where are they underperforming? What topics are they NOT covering?
 
 Then provide:
 - **Competitive Gap Analysis**: Where VoiceCare.ai can differentiate
+- **Keyword Gap**: Which high-value keywords competitors rank for that VoiceCare.ai should target
 - **Content Opportunities**: Specific topics/formats competitors are missing
 - **Quick Win Strategies**: 5 immediate actions VoiceCare.ai can take to gain ground
-- **Ranking**: Rank all competitors + VoiceCare.ai by estimated LinkedIn strength"""
+- **Ranking**: Rank all competitors + VoiceCare.ai by combined digital strength (SEO + LinkedIn + AI visibility)"""
 
         schema = {
             "competitors": [
                 {
                     "name": "string",
+                    "organic_traffic": "number or string from SEMrush",
+                    "organic_keywords": "number or string from SEMrush",
+                    "authority_score": "number or string from SEMrush",
+                    "backlinks": "number or string from SEMrush",
+                    "top_seo_keywords": ["string"],
                     "linkedin_followers_estimate": "number",
                     "posting_frequency": "string",
                     "top_content_themes": ["string"],
@@ -60,14 +118,89 @@ Then provide:
                     "weaknesses": ["string"],
                 }
             ],
+            "keyword_gaps": [
+                {"keyword": "string", "competitor_ranking": "string", "search_volume": "string", "difficulty": "string"}
+            ],
             "gap_analysis": ["string"],
             "content_opportunities": ["string"],
             "quick_wins": ["string"],
-            "ranking": [{"rank": "number", "company": "string", "score": "number"}],
+            "ranking": [{"rank": "number", "company": "string", "score": "number", "rationale": "string"}],
         }
 
         logger.info("Running full competitive analysis with web search...")
         return self.ai.structured_query(prompt, schema, use_web_search=True)
+
+    def semrush_keyword_gap_analysis(self, competitor_name: str) -> dict:
+        """Use SEMrush to find exact keyword gaps vs a competitor."""
+        competitor = next(
+            (c for c in self.competitors if c["name"].lower() == competitor_name.lower()),
+            None,
+        )
+        if not competitor:
+            return {"error": f"Competitor '{competitor_name}' not found in config"}
+
+        our_domain = (
+            self.config.get("company", {})
+            .get("website", "voicecare.ai")
+            .replace("https://", "").replace("http://", "").rstrip("/")
+        )
+        comp_domain = (
+            competitor["website"]
+            .replace("https://", "").replace("http://", "").rstrip("/")
+        )
+
+        if not self.semrush:
+            return {"error": "SEMrush not configured. Add SEMRUSH_API_KEY to .env"}
+
+        try:
+            gap_keywords = self.semrush.keyword_gap(our_domain, comp_domain, limit=30)
+            our_overview = self.semrush.domain_overview(our_domain)
+            comp_overview = self.semrush.domain_overview(comp_domain)
+        except Exception as e:
+            return {"error": str(e)}
+
+        gap_list = "\n".join(
+            f"- \"{row.get('Ph', '')}\" | pos {row.get('Po', '?')} | vol {row.get('Nq', '?')} | url: {row.get('Ur', '')}"
+            for row in gap_keywords[:20]
+        )
+
+        prompt = f"""Analyse this SEMrush keyword gap data and recommend a content strategy.
+
+VoiceCare.ai vs {competitor_name}:
+- Our organic traffic: {our_overview.get('Ot', 'N/A')} | keywords: {our_overview.get('Or', 'N/A')}
+- {competitor_name} organic traffic: {comp_overview.get('Ot', 'N/A')} | keywords: {comp_overview.get('Or', 'N/A')}
+
+Top keywords {competitor_name} ranks for that VoiceCare.ai does NOT rank for:
+{gap_list}
+
+For each keyword group, recommend:
+1. Content type to create (blog post, landing page, comparison page, FAQ, etc.)
+2. Suggested title
+3. Key angle/thesis
+4. LinkedIn content tie-in (how to promote via LinkedIn)
+5. Expected traffic if we rank top-5
+
+Prioritise by: (high volume × low difficulty × high relevance to VoiceCare.ai)."""
+
+        schema = {
+            "competitor": competitor_name,
+            "traffic_gap": "string - how much more traffic competitor gets",
+            "keyword_opportunities": [
+                {
+                    "keyword": "string",
+                    "search_volume": "string",
+                    "competitor_position": "string",
+                    "content_type": "string",
+                    "suggested_title": "string",
+                    "angle": "string",
+                    "linkedin_tie_in": "string",
+                    "priority": "high/medium/low",
+                }
+            ],
+            "quick_content_wins": ["string"],
+        }
+
+        return self.ai.structured_query(prompt, schema, use_web_search=False)
 
     def analyze_competitor_content(self, competitor_name: str) -> dict:
         """Deep-dive into a specific competitor's content strategy."""

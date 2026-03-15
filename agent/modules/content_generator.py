@@ -3,6 +3,10 @@ Content Generation Engine.
 
 Generates various types of LinkedIn content optimized for engagement
 and growth, including posts, carousels, polls, articles, and newsletters.
+
+When a SEMrush client is provided, content is enriched with real keyword
+data so every piece is also optimised for organic search (dual-purpose:
+LinkedIn reach AND SEO ranking signal for AI engine visibility).
 """
 
 import logging
@@ -14,14 +18,38 @@ logger = logging.getLogger(__name__)
 class ContentGenerator:
     """Generate high-engagement LinkedIn content for VoiceCare.ai."""
 
-    def __init__(self, ai_engine, config: dict):
+    def __init__(self, ai_engine, config: dict, semrush=None):
         self.ai = ai_engine
         self.config = config
+        self.semrush = semrush  # optional SEMrushClient
+
+    def _keyword_context(self, topic: str) -> str:
+        """Fetch SEMrush keyword suggestions for a topic and return a prompt block."""
+        if not self.semrush:
+            return ""
+        try:
+            suggestions = self.semrush.keyword_suggestions(topic, limit=10)
+            if not suggestions:
+                return ""
+            lines = ["\n## SEMrush Keyword Data for this topic (weave naturally into content)\n"]
+            for row in suggestions[:8]:
+                ph = row.get("Ph", "")
+                nq = row.get("Nq", "?")
+                co = row.get("Co", "?")
+                lines.append(f'- "{ph}" — monthly searches: {nq}, difficulty: {co}/100')
+            lines.append(
+                "\nNaturally include 2-3 of these phrases in the content to boost SEO as well as LinkedIn reach.\n"
+            )
+            return "\n".join(lines)
+        except Exception as e:
+            logger.debug(f"SEMrush keyword fetch failed for '{topic}': {e}")
+            return ""
 
     def generate_carousel(self, topic: str, slide_count: int = 10) -> dict:
         """Generate a LinkedIn carousel post with slide-by-slide content."""
+        kw_block = self._keyword_context(topic)
         prompt = f"""Create a viral LinkedIn carousel for VoiceCare.ai about: {topic}
-
+{kw_block}
 Search the web for the latest data, stats, and insights on this topic.
 
 Design a {slide_count}-slide carousel that follows the proven LinkedIn carousel formula:
@@ -128,8 +156,9 @@ This should NOT read like AI-generated content. Make it human."""
 
     def generate_data_driven_post(self, data_topic: str) -> dict:
         """Generate a post built around data and statistics."""
+        kw_block = self._keyword_context(data_topic)
         prompt = f"""Create a data-driven LinkedIn post for VoiceCare.ai about: {data_topic}
-
+{kw_block}
 CRITICAL: Search the web for REAL, RECENT statistics and data about this topic. Include:
 - Industry reports (Gartner, Forrester, McKinsey, etc.)
 - Survey results
