@@ -13,6 +13,7 @@ Usage:
     python run.py audit QUERY           Audit AI visibility for a search query
     python run.py ask "QUESTION"        Ask any growth question with web search
     python run.py interactive           Interactive chat mode
+    python run.py dashboard             Generate combined HTML dashboard
 
   SEMrush commands (requires SEMRUSH_API_KEY in .env):
     python run.py semrush domain DOMAIN             Full domain report
@@ -41,6 +42,7 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agent.orchestrator import GrowthEngineOrchestrator
+from agent.modules.dashboard import generate_dashboard
 
 console = Console()
 
@@ -401,6 +403,15 @@ def semrush_landscape(db, config):
 
     console.print(table)
     console.print(f"\n[dim]Full data saved to data/output/[/dim]")
+
+
+@cli.command()
+@click.option("--output", default=None, help="Custom output path for the HTML file")
+def dashboard(output):
+    """Generate a combined HTML dashboard from all JSON outputs."""
+    path = generate_dashboard(output_path=output)
+    console.print(f"[bold green]Dashboard saved →[/bold green] {path}")
+    console.print("[dim]Open the file in any browser to view.[/dim]")
 
 
 if __name__ == "__main__":

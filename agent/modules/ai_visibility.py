@@ -54,6 +54,9 @@ class AIVisibilityOptimizer:
         query_list = "\n".join(f'- "{q}"' for q in self.target_queries)
         engine_list = ", ".join(self.target_engines)
         kw_intelligence = self._build_keyword_intelligence()
+        competitor_names = ", ".join(
+            c["name"] for c in self.config.get("competitors", []) if c.get("name")
+        )
 
         prompt = f"""Perform a comprehensive Generative Engine Optimization (GEO) audit for VoiceCare.ai.
 
@@ -73,7 +76,7 @@ Using the real SEMrush SERP data above (where provided), AND web search, determi
 {query_list}
 
 STEP 3 - Competitor Benchmark:
-Compare VoiceCare.ai's digital footprint to competitors (Observe.AI, CallMiner, Gong, Level AI, Balto).
+Compare VoiceCare.ai's digital footprint to competitors ({competitor_names}).
 Use the SEMrush keyword data to quantify exactly how far ahead or behind each competitor is.
 Who has stronger signals for AI engine citation?
 
@@ -128,43 +131,38 @@ Create a detailed, prioritized action plan to improve VoiceCare.ai's AI engine v
 
     def generate_geo_content_plan(self) -> dict:
         """Generate content specifically designed to be cited by AI engines."""
-        prompt = """Create a GEO (Generative Engine Optimization) content plan for VoiceCare.ai.
+        prompt = """Create a Generative Engine Optimization (GEO) content plan tailored for VoiceCare.ai, a company specializing in healthcare voice AI, AI medical scribes, ambient clinical voice solutions, and patient engagement automation.
 
-Search the web for the latest best practices in GEO and AI search optimization.
+The goal is to engineer content that generative AI engines (ChatGPT, Perplexity, Gemini, Google AI Overviews, etc.) will discover, extract, and cite when healthcare providers, hospital administrators, and practice managers ask questions about clinical voice AI and related topics.
 
-The goal is to create content that AI engines (ChatGPT, Perplexity, Gemini, etc.) will cite when users ask about voice AI, contact center AI, and related topics.
+Please design a content plan broken down into these five strategic categories, incorporating the latest GEO best practices (e.g., "answer nuggets," factual density, prompt-based research, and schema markup):
 
-Design content pieces in these categories:
+1. **Definitive Guides (Entity & Topical Authority):**
+   - AI systems favor comprehensive, structurally clear content that answers follow-up questions.
+   - *Examples:* "The Complete Guide to Ambient Clinical Voice Solutions in 2026," "AI Medical Scribes vs. Traditional Dictation: A Data-Driven Comparison."
 
-1. **Definitive Guides** (AI engines love comprehensive, authoritative content):
-   - "The Complete Guide to Voice Analytics in Contact Centers"
-   - "Voice AI vs Traditional QA: A Data-Driven Comparison"
-   - etc.
+2. **Original Research & Data (Citation-Worthy Fact-Density):**
+   - AI engines specifically look for unique data, benchmarks, and verifiable statistics to cite in their answers.
+   - *Examples:* Ideas for physician burnout surveys, time-savings impact reports on AI patient intake, or clinical documentation error-rate benchmarks.
 
-2. **Original Research & Data** (AI engines cite unique data):
-   - Survey ideas to conduct
-   - Benchmark reports to publish
-   - Industry statistics to compile
+3. **Comparison Pages (AI Shortlist & Consideration Phase):**
+   - Buyers ask AI tools for unbiased comparisons. We need structured pages with tables and feature matrices so AI pulls our data rather than third-party interpretations.
+   - *Examples:* "Top 10 AI Medical Scribe Platforms Compared," "Healthcare Voice AI Solutions: Feature & EHR Integration Matrix."
 
-3. **Comparison & Listicle Pages** (These appear in AI responses):
-   - "Top 10 Voice Analytics Platforms Compared"
-   - "Voice AI Solutions: Feature Comparison Matrix"
+4. **Conversational FAQs & Prompt Responses:**
+   - Content mapped directly to the long-tail, conversational prompts users type into AI systems (e.g., "How do I choose an AI scribe for Epic?").
+   - *Examples:* A knowledge base of "Answer Nuggets" (short, 40-60 word definitive answers) covering HIPAA compliance, security, and implementation.
 
-4. **FAQ & Knowledge Base** (Structured Q&A content):
-   - Common questions AI engines get about this space
-   - Detailed, cited answers VoiceCare.ai should publish
+5. **Technical & E-E-A-T Content (Trust Signals):**
+   - Technical depth establishes authority.
+   - *Examples:* EHR integration guides (Epic, Cerner), whitepapers on ambient AI data privacy protocols, and clinical case studies with hard ROI metrics.
 
-5. **Technical Content** (Establishes expertise signals):
-   - Whitepapers, case studies with metrics
-   - Integration guides, API documentation
-   - Technical blog posts
-
-For each content piece, specify:
-- Title, format, length
-- Target queries it should rank for
-- Key entities and topics to cover
-- Where to publish (blog, docs site, Medium, etc.)
-- Distribution strategy"""
+For each recommended content piece, please specify:
+- **Title, format, and estimated length**
+- **Target conversational prompts/queries it should capture**
+- **Key entities, terms, and specific data points to include**
+- **Formatting requirements for AI extractability** (e.g., H2s, bullet lists, comparison tables, schema types)
+- **Omnichannel distribution strategy** (e.g., publishing on the main blog, Reddit, healthcare forums, YouTube, or PR distribution to secure external citations)"""
 
         schema = {
             "content_pieces": [

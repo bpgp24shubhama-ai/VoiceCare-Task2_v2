@@ -20,6 +20,7 @@ from agent.modules.content_generator import ContentGenerator
 from agent.modules.growth_hacks import GrowthHackEngine
 from agent.modules.analytics import GrowthAnalytics
 from agent.modules.semrush import SEMrushClient
+from agent.modules.dashboard import generate_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,9 @@ class GrowthEngineOrchestrator:
         logger.info("INITIAL STRATEGY COMPLETE - All outputs saved to data/output/")
         logger.info("=" * 60)
 
+        dashboard_path = generate_dashboard()
+        logger.info(f"Dashboard → {dashboard_path}")
+
         return results
 
     def run_weekly_cycle(self, week_number: int, current_followers: int, **metrics) -> dict:
@@ -140,6 +144,7 @@ class GrowthEngineOrchestrator:
         self.analytics.save_output(results["competitor_update"], f"week{week_number}_competitors")
 
         logger.info(f"\nWeek {week_number} cycle complete.")
+        generate_dashboard()
         return results
 
     def generate_content(self, content_type: str, topic: str, **kwargs) -> dict:
@@ -187,6 +192,7 @@ class GrowthEngineOrchestrator:
         results["schema"] = self.visibility.generate_schema_markup_recommendations()
         self.analytics.save_output(results["schema"], "schema_recommendations")
 
+        generate_dashboard()
         return results
 
     def run_growth_hacks(self) -> dict:
@@ -206,6 +212,7 @@ class GrowthEngineOrchestrator:
         results["partnerships"] = self.growth.partnership_growth_strategy()
         self.analytics.save_output(results["partnerships"], "partnerships")
 
+        generate_dashboard()
         return results
 
     def interactive_query(self, question: str) -> str:

@@ -122,6 +122,7 @@ class SEMrushClient:
         """Get backlink profile summary for a domain."""
         rows = self._get(
             {
+                "type": "backlinks_overview",
                 "target": domain,
                 "target_type": "root_domain",
                 "export_columns": (
@@ -138,6 +139,7 @@ class SEMrushClient:
         """Get top referring domains (for authority signal analysis)."""
         return self._get(
             {
+                "type": "backlinks_refdomains",
                 "target": domain,
                 "target_type": "root_domain",
                 "export_columns": "domain,score,backlinks_num,ip,country,first_seen,last_seen",
