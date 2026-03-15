@@ -1,0 +1,117 @@
+# ============================================================
+# VoiceCare.ai - AI Growth Engine Agent Configuration
+# ============================================================
+
+company:
+  name: "VoiceCare.ai"
+  website: "https://voicecare.ai"
+  description: "AI-powered voice analytics and customer care platform"
+  linkedin_url: "https://www.linkedin.com/company/voicecare-ai"
+  current_followers: 2900
+  target_followers: 10000
+  target_months: 3
+
+# OpenAI GPT-5 Configuration
+ai:
+  model: "gpt-5"  # GPT-5 with reasoning
+  reasoning_effort: "high"
+  temperature: 0.7
+  max_tokens: 16000
+  web_search:
+    enabled: true
+    context_size: "medium"  # low, medium, high
+    search_recency: "month"  # day, week, month
+
+# Competitor Analysis
+competitors:
+  - name: "Observe.AI"
+    website: "https://observe.ai"
+    linkedin: "https://www.linkedin.com/company/observe-ai"
+  - name: "CallMiner"
+    website: "https://callminer.com"
+    linkedin: "https://www.linkedin.com/company/callminer"
+  - name: "Gong.io"
+    website: "https://gong.io"
+    linkedin: "https://www.linkedin.com/company/gaborone"
+  - name: "Chorus.ai"
+    website: "https://chorus.ai"
+    linkedin: "https://www.linkedin.com/company/chorus-ai"
+  - name: "Balto"
+    website: "https://balto.ai"
+    linkedin: "https://www.linkedin.com/company/baltosoftware"
+  - name: "Level AI"
+    website: "https://thelevel.ai"
+    linkedin: "https://www.linkedin.com/company/level-ai"
+
+# LinkedIn Growth Strategy
+linkedin:
+  posting_frequency: "daily"  # daily, 2x_daily, 3x_weekly
+  optimal_post_times:
+    - "08:00"
+    - "12:00"
+    - "17:30"
+  content_mix:
+    thought_leadership: 0.30
+    product_insights: 0.15
+    industry_trends: 0.20
+    customer_stories: 0.10
+    engagement_hooks: 0.15
+    data_driven_posts: 0.10
+  hashtag_strategy:
+    primary:
+      - "#VoiceAI"
+      - "#ContactCenter"
+      - "#CustomerExperience"
+      - "#ConversationalAI"
+      - "#CX"
+    secondary:
+      - "#AI"
+      - "#ArtificialIntelligence"
+      - "#SpeechAnalytics"
+      - "#CallCenter"
+      - "#VoiceAnalytics"
+      - "#CustomerService"
+      - "#AgentAssist"
+
+# AI Engine Visibility (GEO - Generative Engine Optimization)
+ai_visibility:
+  target_engines:
+    - "ChatGPT"
+    - "Perplexity"
+    - "Google Gemini"
+    - "Claude"
+    - "Copilot"
+  target_queries:
+    - "best voice analytics software"
+    - "AI contact center solutions"
+    - "voice AI for customer service"
+    - "speech analytics platforms"
+    - "AI-powered call center software"
+    - "voice of customer analytics"
+    - "real-time agent assist AI"
+    - "conversational intelligence platform"
+    - "AI quality assurance contact center"
+    - "voice analytics competitors"
+
+# Growth Hack Frameworks
+growth_hacks:
+  enabled:
+    - "viral_content_loops"
+    - "engagement_pods_organic"
+    - "influencer_micro_collabs"
+    - "comment_strategy"
+    - "employee_advocacy"
+    - "content_repurposing"
+    - "linkedin_newsletter"
+    - "linkedin_events"
+    - "poll_engagement"
+    - "carousel_strategy"
+    - "geo_optimization"
+
+# Schedule
+schedule:
+  competitor_analysis: "weekly"
+  content_generation: "daily"
+  ai_visibility_audit: "weekly"
+  growth_report: "weekly"
+  strategy_refresh: "biweekly"
