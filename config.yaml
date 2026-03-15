@@ -11,6 +11,13 @@ company:
   target_followers: 10000
   target_months: 3
 
+# SEMrush Configuration
+semrush:
+  database: "us"          # SEMrush regional database: us, uk, ca, au, de, fr, es, ...
+  keyword_limit: 20       # Max keyword suggestions fetched per query
+  competitor_limit: 5     # Max SERP competitors returned per keyword
+  # API key is read from SEMRUSH_API_KEY env var
+
 # OpenAI GPT-5 Configuration
 ai:
   model: "gpt-5"  # GPT-5 with reasoning

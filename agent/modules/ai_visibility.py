@@ -4,9 +4,9 @@ AI Engine Visibility Optimizer (GEO - Generative Engine Optimization).
 Optimizes VoiceCare.ai's presence and ranking on AI-powered search engines
 like ChatGPT, Perplexity, Google Gemini, Claude, and Microsoft Copilot.
 
-This is a new discipline - Generative Engine Optimization - that ensures
-when users ask AI assistants about voice AI solutions, VoiceCare.ai appears
-prominently in responses.
+SEMrush integration provides real keyword volumes, SERP competitor lists,
+and backlink authority data so every GEO recommendation is grounded in
+actual search data, not estimates.
 """
 
 import logging
@@ -18,21 +18,47 @@ logger = logging.getLogger(__name__)
 class AIVisibilityOptimizer:
     """Optimize VoiceCare.ai visibility on AI search engines."""
 
-    def __init__(self, ai_engine, config: dict):
+    def __init__(self, ai_engine, config: dict, semrush=None):
         self.ai = ai_engine
         self.config = config
+        self.semrush = semrush  # optional SEMrushClient
         self.target_engines = config.get("ai_visibility", {}).get("target_engines", [])
         self.target_queries = config.get("ai_visibility", {}).get("target_queries", [])
+
+    # ------------------------------------------------------------------ #
+    # Internal helper                                                      #
+    # ------------------------------------------------------------------ #
+
+    def _build_keyword_intelligence(self) -> str:
+        """Fetch SEMrush data for target queries and return a prompt block."""
+        if not self.semrush:
+            return ""
+
+        lines = ["\n## SEMrush Keyword Intelligence (real data — use exact figures)\n"]
+        for query in self.target_queries[:8]:  # cap API calls
+            try:
+                kw = self.semrush.keyword_overview(query)
+                serp = self.semrush.serp_competitors(query, limit=5)
+                vol = kw.get("Nq", "N/A")
+                diff = kw.get("Co", "N/A")
+                cpc = kw.get("Cp", "N/A")
+                serp_domains = [r.get("Dn", "") for r in serp]
+                lines.append(f'**"{query}"**: volume={vol}, difficulty={diff}/100, CPC=${cpc}')
+                lines.append(f"  SERP top-5: {', '.join(serp_domains)}")
+            except Exception as e:
+                logger.debug(f"SEMrush keyword lookup failed for '{query}': {e}")
+        return "\n".join(lines)
 
     def full_geo_audit(self) -> dict:
         """Perform a full Generative Engine Optimization audit."""
         query_list = "\n".join(f'- "{q}"' for q in self.target_queries)
         engine_list = ", ".join(self.target_engines)
+        kw_intelligence = self._build_keyword_intelligence()
 
         prompt = f"""Perform a comprehensive Generative Engine Optimization (GEO) audit for VoiceCare.ai.
 
 GEO is the practice of optimizing a brand's visibility in AI-powered search engines ({engine_list}).
-
+{kw_intelligence}
 STEP 1 - Current State Audit:
 Search the web to understand VoiceCare.ai's current digital footprint:
 - Website content and SEO
@@ -43,22 +69,23 @@ Search the web to understand VoiceCare.ai's current digital footprint:
 - Backlink profile quality
 
 STEP 2 - Query Simulation:
-For each of these queries, search the web and determine who would likely be mentioned by AI engines:
+Using the real SEMrush SERP data above (where provided), AND web search, determine who ranks for each query and who AI engines would cite:
 {query_list}
 
 STEP 3 - Competitor Benchmark:
 Compare VoiceCare.ai's digital footprint to competitors (Observe.AI, CallMiner, Gong, Level AI, Balto).
+Use the SEMrush keyword data to quantify exactly how far ahead or behind each competitor is.
 Who has stronger signals for AI engine citation?
 
 STEP 4 - GEO Strategy:
 Create a detailed, prioritized action plan to improve VoiceCare.ai's AI engine visibility:
 
-1. **Content Authority Signals**: How to create content that AI engines cite
-2. **Structured Data**: Schema markup, knowledge graph optimization
-3. **Third-Party Validation**: Review sites, analyst reports, listicles to target
-4. **Citation Building**: How to get mentioned in sources AI engines trust
-5. **Technical SEO for AI**: Site structure, FAQ pages, entity optimization
-6. **Content Types That AI Engines Favor**: Research papers, comparison pages, definitive guides"""
+1. **Quick SEO wins**: Keywords with high volume + low difficulty from SEMrush data above where VoiceCare.ai is absent
+2. **Content Authority Signals**: How to create content that AI engines cite
+3. **Structured Data**: Schema markup, knowledge graph optimization
+4. **Third-Party Validation**: Review sites, analyst reports, listicles to target
+5. **Citation Building**: How to get mentioned in sources AI engines trust
+6. **Technical SEO for AI**: Site structure, FAQ pages, entity optimization"""
 
         schema = {
             "current_visibility_score": "number (1-100)",
@@ -227,6 +254,73 @@ For each, provide:
         }
 
         return self.ai.structured_query(prompt, schema, use_web_search=True)
+
+    def keyword_opportunity_report(self, seed_keywords: list[str] | None = None) -> dict:
+        """Use SEMrush to find keyword opportunities, then GPT-5 to prioritise them.
+
+        Args:
+            seed_keywords: Override list; defaults to config target_queries.
+        """
+        if not self.semrush:
+            return {"error": "SEMrush not configured. Add SEMRUSH_API_KEY to .env"}
+
+        seeds = seed_keywords or self.target_queries[:5]
+        all_suggestions: list[dict] = []
+
+        for kw in seeds:
+            try:
+                suggestions = self.semrush.keyword_suggestions(kw, limit=15)
+                all_suggestions.extend(suggestions)
+            except Exception as e:
+                logger.warning(f"Keyword suggestions failed for '{kw}': {e}")
+
+        if not all_suggestions:
+            return {"error": "No keyword data returned from SEMrush"}
+
+        kw_table = "\n".join(
+            f"- \"{row.get('Ph', '')}\" | vol={row.get('Nq', '?')} | diff={row.get('Co', '?')} | CPC=${row.get('Cp', '?')}"
+            for row in all_suggestions[:40]
+        )
+
+        prompt = f"""Analyse these SEMrush keyword suggestions for VoiceCare.ai and build a prioritised keyword strategy.
+
+{kw_table}
+
+For each keyword, recommend:
+1. Whether VoiceCare.ai should target it (YES/NO/MAYBE)
+2. The best content format (blog post, landing page, comparison, FAQ, case study)
+3. A LinkedIn content angle to support SEO (LinkedIn post → traffic → ranking signal)
+4. Expected ROI: how this keyword could drive leads or brand awareness
+
+Group the keywords into themes and recommend a phased rollout:
+- Month 1: quick wins (high vol, low diff)
+- Month 2: authority builders
+- Month 3: competitive battles"""
+
+        schema = {
+            "keyword_themes": [
+                {
+                    "theme": "string",
+                    "keywords": [
+                        {
+                            "keyword": "string",
+                            "volume": "string",
+                            "difficulty": "string",
+                            "target": "YES/NO/MAYBE",
+                            "content_format": "string",
+                            "linkedin_angle": "string",
+                            "priority": "number",
+                        }
+                    ],
+                }
+            ],
+            "month_1_quick_wins": ["string"],
+            "month_2_authority_builders": ["string"],
+            "month_3_competitive_battles": ["string"],
+        }
+
+        logger.info("Generating keyword opportunity report...")
+        return self.ai.structured_query(prompt, schema, use_web_search=False)
 
     def monitor_ai_mentions(self) -> dict:
         """Monitor how VoiceCare.ai is being mentioned across the web."""

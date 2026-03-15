@@ -19,6 +19,7 @@ from agent.modules.ai_visibility import AIVisibilityOptimizer
 from agent.modules.content_generator import ContentGenerator
 from agent.modules.growth_hacks import GrowthHackEngine
 from agent.modules.analytics import GrowthAnalytics
+from agent.modules.semrush import SEMrushClient
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +33,25 @@ class GrowthEngineOrchestrator:
 
         self.ai = AIEngine(self.config)
 
-        # Initialize all modules
-        self.competitor = CompetitorAnalyzer(self.ai, self.config)
+        # SEMrush is optional — modules degrade gracefully when not configured
+        semrush = None
+        semrush_key = os.getenv("SEMRUSH_API_KEY")
+        if semrush_key:
+            try:
+                semrush = SEMrushClient(api_key=semrush_key)
+                logger.info("SEMrush client initialised — real keyword data enabled.")
+            except Exception as e:
+                logger.warning(f"SEMrush init failed: {e}. Continuing without SEMrush.")
+        else:
+            logger.info("SEMRUSH_API_KEY not set — SEMrush enrichment disabled.")
+
+        self.semrush = semrush
+
+        # Initialize all modules, passing SEMrush where relevant
+        self.competitor = CompetitorAnalyzer(self.ai, self.config, semrush=semrush)
         self.linkedin = LinkedInGrowthEngine(self.ai, self.config)
-        self.visibility = AIVisibilityOptimizer(self.ai, self.config)
-        self.content = ContentGenerator(self.ai, self.config)
+        self.visibility = AIVisibilityOptimizer(self.ai, self.config, semrush=semrush)
+        self.content = ContentGenerator(self.ai, self.config, semrush=semrush)
         self.growth = GrowthHackEngine(self.ai, self.config)
         self.analytics = GrowthAnalytics(self.ai, self.config)
 
