@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The AI Growth Engine Agent — VoiceCare.ai</title>
+  <style>
+    /* ── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg:          #030d1e;
+      --bg-card:     #071628;
+      --bg-card2:    #0c1f3a;
+      --teal:        #00c6ff;
+      --indigo:      #6366f1;
+      --purple:      #8b5cf6;
+      --text:        #eef4ff;
+      --text-2:      #7ea8d8;
+      --text-3:      #3a5980;
+      --border:      #162d52;
+      --border-2:    #1e4080;
+      --term-bg:     #020c18;
+      --green:       #22c55e;
+      --blue:        #60a5fa;
+      --amber:       #fbbf24;
+      --red:         #f87171;
+      --gray:        #3d5a7a;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Subtle radial glow behind content */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -5%,  #0a2a5018, transparent),
+        radial-gradient(ellipse 40% 30% at 85% 85%,   #6366f10a, transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 40px;
+      background: #04101ecc;
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .logo-img {
+      height: 36px; width: auto;
+      display: block;
+      filter: drop-shadow(0 0 10px #00c6ff20);
+    }
+
+    .header-pill {
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      background: #00c6ff0c; border: 1px solid #00c6ff25; border-radius: 999px;
+      color: var(--teal);
+    }
+
+    /* ── Main ──────────────────────────────────────────────── */
+    main {
+      flex: 1; position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 64px 24px 48px;
+      max-width: 900px; margin: 0 auto; width: 100%;
+    }
+
+    /* ── Hero ──────────────────────────────────────────────── */
+    .hero { text-align: center; margin-bottom: 52px; }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--teal); margin-bottom: 22px;
+    }
+    .hero-eyebrow::before, .hero-eyebrow::after {
+      content: ''; display: block; width: 32px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal));
+      opacity: 0.55;
+    }
+    .hero-eyebrow::after { transform: scaleX(-1); }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 900; line-height: 1.08; letter-spacing: -0.03em;
+      background: linear-gradient(165deg, #fff 0%, #c7d2fe 55%, #00c6ff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 18px;
+    }
+
+    .hero-sub {
+      font-size: 1rem; color: var(--text-2); max-width: 540px;
+      margin: 0 auto; line-height: 1.65;
+    }
+
+    /* ── Stats strip ───────────────────────────────────────── */
+    .stats {
+      display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 52px;
+    }
+    .stat { text-align: center; }
+    .stat-val {
+      font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .stat-val.accent { color: var(--teal); }
+    .stat-label {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-3); margin-top: 2px;
+    }
+    .stat-sep { color: var(--border-2); font-size: 1.4rem; }
+
+    /* ── Run button ────────────────────────────────────────── */
+    #runBtn {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 15px 44px;
+      font-size: 1rem; font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #00a8e8 0%, #6366f1 55%, #8b5cf6 100%);
+      background-size: 200% 200%;
+      border: none; border-radius: 14px; cursor: pointer;
+      transition: transform 0.25s, box-shadow 0.25s, background-position 0.4s;
+      box-shadow: 0 0 40px #00c6ff1a, 0 6px 28px #6366f128;
+      margin-bottom: 52px;
+    }
+    #runBtn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 0 60px #00c6ff28, 0 10px 36px #6366f138;
+      background-position: right center;
+    }
+    #runBtn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+    #runBtn .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.28); border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      display: none;
+    }
+    #runBtn.running .spinner  { display: block; }
+    #runBtn.running .btn-icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Status bar ────────────────────────────────────────── */
+    #statusBar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; color: var(--text-2);
+      margin-bottom: 14px;
+      min-height: 22px;
+    }
+    .s-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-3); flex-shrink: 0;
+    }
+    .s-dot.live {
+      background: var(--green);
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    .s-dot.done  { background: var(--green); animation: none; }
+    .s-dot.err   { background: var(--red);   animation: none; }
+    @keyframes pulse-dot {
+      0%, 100% { box-shadow: 0 0 0 0 #22c55e35; }
+      50%       { box-shadow: 0 0 0 6px transparent; }
+    }
+
+    /* ── Terminal ──────────────────────────────────────────── */
+    .term-wrap {
+      width: 100%; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 64px #00000055;
+      margin-bottom: 36px;
+    }
+
+    .term-bar {
+      background: #0a1f35;
+      padding: 11px 16px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tdot { width: 12px; height: 12px; border-radius: 50%; }
+    .tdot.r { background: #ff5f57; }
+    .tdot.y { background: #febc2e; }
+    .tdot.g { background: #28c840; }
+    #termTitle {
+      flex: 1; text-align: center;
+      font-size: 0.75rem; font-family: 'SF Mono','Fira Code','Consolas',monospace;
+      color: var(--text-3);
+    }
+
+    /* Progress bar */
+    .term-progress { height: 2px; background: var(--border); overflow: hidden; }
+    #progressFill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #00c6ff, #6366f1, #8b5cf6);
+      background-size: 200% 100%;
+      transition: width 0.6s ease;
+      animation: shimmer 2.2s linear infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+
+    /* Terminal body */
+    #termBody {
+      background: var(--term-bg);
+      min-height: 320px; max-height: 460px;
+      overflow-y: auto; padding: 20px 22px;
+      font-family: 'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+      font-size: 0.8rem; line-height: 1.75;
+    }
+    #termBody::-webkit-scrollbar { width: 4px; }
+    #termBody::-webkit-scrollbar-track { background: var(--term-bg); }
+    #termBody::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Placeholder */
+    #placeholder {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 280px;
+      gap: 14px; color: var(--gray);
+    }
+    .ph-icon { font-size: 2.6rem; opacity: 0.35; }
+    .ph-text { font-size: 0.83rem; text-align: center; line-height: 1.6; }
+    .ph-text strong { color: var(--text-2); }
+
+    /* Log lines */
+    .tline {
+      display: flex; gap: 8px;
+      animation: lineIn 0.14s ease-out both;
+    }
+    @keyframes lineIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tline .pfx { color: var(--gray); user-select: none; flex-shrink: 0; }
+    .tline.info    .txt { color: #d4e4f7; }
+    .tline.success .txt { color: var(--green); }
+    .tline.error   .txt { color: var(--red); }
+    .tline.warning .txt { color: var(--amber); }
+    .tline.step    .txt { color: var(--blue); font-weight: 600; }
+    .tline.dim     .txt { color: var(--gray); }
+
+    /* Cursor */
+    .cursor {
+      display: inline-block; width: 7px; height: 13px;
+      background: var(--green);
+      margin-left: 3px; vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+    /* ── Action buttons ────────────────────────────────────── */
+    #actions {
+      display: none; gap: 16px; flex-wrap: wrap;
+      justify-content: center; margin-bottom: 40px;
+    }
+    #actions.show { display: flex; }
+
+    .btn-a {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 13px 30px; border-radius: 12px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+    .btn-a:hover { transform: translateY(-2px); }
+
+    .btn-open {
+      background: linear-gradient(135deg, #00a8e8, #6366f1);
+      color: #fff; border: none;
+      box-shadow: 0 4px 22px #6366f128;
+    }
+    .btn-open:hover { box-shadow: 0 6px 32px #6366f148; }
+
+    .btn-dl {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border-2);
+    }
+    .btn-dl:hover { background: #1e305830; border-color: var(--indigo); }
+
+    /* ── Feature chips ─────────────────────────────────────── */
+    .chips {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      justify-content: center; margin-top: 36px;
+    }
+    .chip {
+      padding: 6px 15px;
+      background: #0a1e3808; border: 1px solid var(--border);
+      border-radius: 999px; font-size: 0.73rem; color: var(--text-2);
+    }
+
+    /* ── Footer ────────────────────────────────────────────── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 18px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #04101ecc; backdrop-filter: blur(16px);
+      flex-wrap: wrap; gap: 10px;
+    }
+    .footer-l { font-size: 0.78rem; color: var(--text-3); }
+    .footer-l strong { color: var(--text-2); }
+    .footer-r {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; color: var(--text-3);
+    }
+    .heart { color: #f87171; }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      header  { padding: 12px 18px; }
+      main    { padding: 44px 16px 36px; }
+      footer  { padding: 14px 18px; }
+      #runBtn { padding: 13px 30px; font-size: 0.92rem; }
+      .hero-title { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════ -->
+<header>
+  <div class="logo">
+    <img class="logo-img" src="/api/logo" alt="VoiceCare.ai" />
+  </div>
+  <div class="header-pill">Growth Engine</div>
+</header>
+
+<!-- ═══════════════════════ MAIN ════════════════════════ -->
+<main>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">AI-Powered LinkedIn Growth</div>
+    <h1 class="hero-title">The AI Growth<br>Engine Agent</h1>
+    <p class="hero-sub">
+      Powered by GPT&nbsp;5 with real-time web search. Generates competitive
+      intelligence, GEO optimisation, a 12-week growth playbook, and a
+      ready-to-execute content calendar — in a single click.
+    </p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val">2,900</div>
+      <div class="stat-label">Current Followers</div>
+    </div>
+    <div class="stat-sep">→</div>
+    <div class="stat">
+      <div class="stat-val accent">10,000</div>
+      <div class="stat-label">Target Followers</div>
+    </div>
+    <div class="stat-sep">·</div>
+    <div class="stat">
+      <div class="stat-val">12 Weeks</div>
+      <div class="stat-label">Timeline</div>
+    </div>
+    <div class="stat-sep">·</div>
+    <div class="stat">
+      <div class="stat-val">5</div>
+      <div class="stat-label">AI Modules</div>
+    </div>
+  </div>
+
+  <!-- Run button -->
+  <button id="runBtn" onclick="runStrategy()">
+    <span class="btn-icon">⚡</span>
+    <div class="spinner"></div>
+    <span id="btnText">Run Strategy</span>
+  </button>
+
+  <!-- Status bar -->
+  <div id="statusBar">
+    <div class="s-dot" id="sDot"></div>
+    <span id="sText">Ready</span>
+  </div>
+
+  <!-- Terminal window -->
+  <div class="term-wrap">
+    <div class="term-bar">
+      <div class="tdot r"></div>
+      <div class="tdot y"></div>
+      <div class="tdot g"></div>
+      <div id="termTitle">voicecare-ai-growth-engine — bash</div>
+    </div>
+    <div class="term-progress">
+      <div id="progressFill"></div>
+    </div>
+    <div id="termBody">
+      <div id="placeholder">
+        <div class="ph-icon">⚡</div>
+        <div class="ph-text">
+          Click <strong>Run Strategy</strong> to start the AI Growth Engine.<br>
+          <span style="opacity:.55;font-size:.72rem">Live output will stream here.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action buttons (revealed on completion) -->
+  <div id="actions">
+    <button class="btn-a btn-open" onclick="openDash()">
+      📊&nbsp; Open Dashboard &nbsp;<span style="opacity:.7;font-size:.75rem">↗</span>
+    </button>
+    <a class="btn-a btn-dl" href="/api/download" download="voicecare-ai-growth-report.html">
+      ⬇&nbsp; Download Report
+    </a>
+  </div>
+
+  <!-- Feature chips -->
+  <div class="chips">
+    <div class="chip">🏆 Competitive Analysis</div>
+    <div class="chip">🔍 GEO Optimisation</div>
+    <div class="chip">🚀 12-Week Playbook</div>
+    <div class="chip">📅 Content Calendar</div>
+    <div class="chip">⚡ LinkedIn Algorithm Guide</div>
+    <div class="chip">🎯 Growth Hacks</div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════════ FOOTER ══════════════════════ -->
+<footer>
+  <div class="footer-l">
+    Built with <span class="heart">♥</span> by <strong>Shubham Anand</strong>
+  </div>
+  <div class="footer-r">
+    <img src="/api/logo" alt="VoiceCare.ai" style="height:20px;width:auto;opacity:.8;" />
+    <span style="color:var(--border)">·</span>
+    <span>AI Growth Engine</span>
+    <span style="color:var(--border)">·</span>
+    <span>2026</span>
+  </div>
+</footer>
+
+<!-- ═══════════════════════ SCRIPT ══════════════════════ -->
+<script>
+  let es = null;          // EventSource instance
+  let stepsComplete = 0;
+
+  /* ─── Main runner ─────────────────────────────────────── */
+  function runStrategy() {
+    const btn       = document.getElementById('runBtn');
+    const btnText   = document.getElementById('btnText');
+    const body      = document.getElementById('termBody');
+    const ph        = document.getElementById('placeholder');
+    const sDot      = document.getElementById('sDot');
+    const sText     = document.getElementById('sText');
+    const prog      = document.getElementById('progressFill');
+    const title     = document.getElementById('termTitle');
+    const actions   = document.getElementById('actions');
+
+    // Close any existing stream
+    if (es) { es.close(); es = null; }
+
+    // Reset UI
+    btn.disabled = true;
+    btn.classList.add('running');
+    btnText.textContent = 'Running…';
+    body.innerHTML = '';
+    actions.classList.remove('show');
+    sDot.className = 's-dot live';
+    sText.textContent = 'Connecting…';
+    prog.style.width = '5%';
+    title.textContent = 'python run.py strategy — running';
+    stepsComplete = 0;
+
+    // First line: show the command
+    addLine('$ python run.py strategy', 'dim');
+
+    /* ─── SSE ─────────────────────────────────────────────── */
+    es = new EventSource('/api/run-strategy');
+    sText.textContent = 'Running strategy…';
+    prog.style.width = '8%';
+
+    es.onmessage = (evt) => {
+      const d = JSON.parse(evt.data);
+
+      if (d.log) {
+        addLine(d.log, d.type || 'info');
+
+        // Advance progress on each numbered step
+        const m = d.log.match(/\[(\d)\/5\]/);
+        if (m) {
+          stepsComplete = parseInt(m[1]);
+          prog.style.width = (8 + stepsComplete * 18) + '%';
+          sText.textContent = `Step ${stepsComplete} / 5…`;
+        }
+      }
+
+      if (d.status === 'complete') {
+        prog.style.width = '100%';
+        es.close(); es = null;
+
+        btn.disabled = false;
+        btn.classList.remove('running');
+        btnText.textContent = 'Run Again';
+
+        sDot.className = 's-dot done';
+        sText.textContent = d.dashboard_ready
+          ? 'Complete — dashboard ready.'
+          : 'Complete.';
+        title.textContent = 'python run.py strategy — done ✓';
+
+        if (d.dashboard_ready) actions.classList.add('show');
+      }
+
+      if (d.status === 'error') {
+        prog.style.width = '0%';
+        es.close(); es = null;
+
+        btn.disabled = false;
+        btn.classList.remove('running');
+        btnText.textContent = 'Retry';
+
+        sDot.className = 's-dot err';
+        sText.textContent = 'Error — see terminal.';
+        title.textContent = 'python run.py strategy — error';
+      }
+    };
+
+    es.onerror = () => {
+      if (es) { es.close(); es = null; }
+      btn.disabled = false;
+      btn.classList.remove('running');
+      btnText.textContent = 'Retry';
+      sDot.className = 's-dot err';
+      sText.textContent = 'Connection lost.';
+      addLine('Connection lost. The strategy may still be running server-side.', 'error');
+      title.textContent = 'python run.py strategy — disconnected';
+    };
+  }
+
+  /* ─── Append a log line ──────────────────────────────── */
+  function addLine(text, type) {
+    const body = document.getElementById('termBody');
+
+    const row = document.createElement('div');
+    row.className = `tline ${type}`;
+
+    const pfx = document.createElement('span');
+    pfx.className = 'pfx';
+    pfx.textContent = '›';
+
+    const txt = document.createElement('span');
+    txt.className = 'txt';
+    txt.textContent = text;
+
+    row.appendChild(pfx);
+    row.appendChild(txt);
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  /* ─── Open dashboard in new tab ─────────────────────── */
+  function openDash() {
+    window.open('/api/dashboard', '_blank');
+  }
+</script>
+
+</body>
+</html>

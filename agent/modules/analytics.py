@@ -12,7 +12,21 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-REPORTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "reports")
+
+def _output_base() -> str:
+    """Return the base directory for all data outputs.
+
+    Honours the VOICECARE_DATA_DIR environment variable so that the
+    Vercel deployment (read-only filesystem) can redirect writes to /tmp/.
+    Falls back to the project root derived from this file's location.
+    """
+    custom = os.environ.get("VOICECARE_DATA_DIR")
+    if custom:
+        return custom
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+
+REPORTS_DIR = os.path.join(_output_base(), "data", "reports")
 
 
 class GrowthAnalytics:
@@ -94,7 +108,9 @@ Provide:
         report = self.ai.structured_query(prompt, schema, use_web_search=True)
 
         # Save report to file
-        report_file = os.path.join(REPORTS_DIR, f"week_{week_number}_report.json")
+        reports_dir = os.path.join(_output_base(), "data", "reports")
+        os.makedirs(reports_dir, exist_ok=True)
+        report_file = os.path.join(reports_dir, f"week_{week_number}_report.json")
         with open(report_file, "w") as f:
             json.dump(report, f, indent=2)
         logger.info(f"Weekly report saved to {report_file}")
@@ -145,9 +161,7 @@ Provide:
 
     def save_output(self, data: dict, filename: str) -> str:
         """Save any output data to the reports directory."""
-        output_dir = os.path.join(
-            os.path.dirname(__file__), "..", "..", "data", "output"
-        )
+        output_dir = os.path.join(_output_base(), "data", "output")
         os.makedirs(output_dir, exist_ok=True)
         filepath = os.path.join(
             output_dir,

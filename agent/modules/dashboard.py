@@ -14,10 +14,24 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_BASE = os.path.join(os.path.dirname(__file__), "..", "..")
-OUTPUT_DIR = os.path.abspath(os.path.join(_BASE, "data", "output"))
-REPORTS_DIR = os.path.abspath(os.path.join(_BASE, "data", "reports"))
-DASHBOARD_PATH = os.path.abspath(os.path.join(_BASE, "data", "dashboard.html"))
+
+def _data_base() -> str:
+    """Return the root directory used for all data I/O.
+
+    Reads the VOICECARE_DATA_DIR environment variable so that Vercel
+    deployments (read-only /var/task filesystem) can redirect to /tmp/.
+    Falls back to the project root relative to this file.
+    """
+    custom = os.environ.get("VOICECARE_DATA_DIR")
+    if custom:
+        return custom
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+
+_BASE = _data_base()
+OUTPUT_DIR = os.path.join(_BASE, "data", "output")
+REPORTS_DIR = os.path.join(_BASE, "data", "reports")
+DASHBOARD_PATH = os.path.join(_BASE, "data", "dashboard.html")
 
 
 # ── Data loading ─────────────────────────────────────────────────────────────
