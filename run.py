@@ -87,6 +87,29 @@ def print_result(data: dict, title: str = "Result"):
             console.print(f"  - {cite.get('title', 'Source')}: {cite.get('url', '')}")
 
 
+def run_strategy_logic(config="config.yaml"):
+    """Run the full initial strategy generation (importable entry-point for Vercel)."""
+    console.print(Panel(
+        "[bold magenta]VoiceCare.ai AI Growth Engine[/bold magenta]\n"
+        "Running Initial Strategy Generation...\n\n"
+        "This will generate:\n"
+        "1. Competitive Analysis\n"
+        "2. GEO (AI Visibility) Audit\n"
+        "3. 12-Week Growth Playbook\n"
+        "4. LinkedIn Algorithm Guide\n"
+        "5. Week 1 Content Calendar",
+        title="Growth Engine",
+    ))
+
+    engine = GrowthEngineOrchestrator(config)
+    results = engine.run_initial_strategy()
+
+    for name, data in results.items():
+        print_result(data, name.replace("_", " ").title())
+
+    console.print("\n[bold green]All outputs saved to data/output/[/bold green]")
+
+
 @click.group()
 def cli():
     """VoiceCare.ai AI Growth Engine Agent"""
@@ -415,4 +438,4 @@ def dashboard(output):
 
 
 if __name__ == "__main__":
-    cli()
+    run_strategy_logic()

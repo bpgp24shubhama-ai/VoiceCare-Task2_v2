@@ -9,9 +9,7 @@ import asyncio
 import json
 import os
 import re
-import subprocess
 import sys
-import traceback
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -23,6 +21,8 @@ from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, Res
 # api/index.py lives inside api/, so parent.parent = project root
 PROJECT_ROOT = str(Path(__file__).parent.parent)
 sys.path.insert(0, PROJECT_ROOT)
+
+from run import run_strategy_logic
 
 # On Vercel the filesystem is read-only except /tmp/.
 # Locally we write to {PROJECT_ROOT}/data/ (unchanged default behaviour).
@@ -87,40 +87,8 @@ async def run_strategy():
 
         yield _sse({"log": ">>> Initializing VoiceCare.ai AI Growth Engine…", "type": "info"})
 
-        # Use subprocess.Popen (sync) + run_in_executor so readline() doesn't
-        # block the event loop.  This is reliable on Windows and all platforms,
-        # unlike asyncio.create_subprocess_exec which can fail under uvicorn's
-        # event-loop policy on Windows.
         loop = asyncio.get_event_loop()
-        proc = None
-        try:
-            proc = subprocess.Popen(
-                [sys.executable, "-u", os.path.join(PROJECT_ROOT, "run.py"), "strategy"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                env=env,
-                cwd=PROJECT_ROOT,
-            )
-        except Exception as exc:
-            tb = traceback.format_exc()
-            yield _sse({"log": f"Error launching strategy: {type(exc).__name__}: {exc}", "type": "error"})
-            for tline in tb.strip().splitlines():
-                yield _sse({"log": tline, "type": "error"})
-            yield _sse({"status": "error"})
-            return
-
-        try:
-            while True:
-                raw = await loop.run_in_executor(None, proc.stdout.readline)
-                if not raw:
-                    break
-                line = _strip_ansi(raw.decode("utf-8", errors="replace")).strip()
-                if line:
-                    yield _sse({"log": line, "type": _classify(line)})
-        except Exception as exc:
-            yield _sse({"log": f"Stream read error: {type(exc).__name__}: {exc}", "type": "error"})
-        finally:
-            proc.wait()
+        await loop.run_in_executor(None, run_strategy_logic)
 
         ready = os.path.exists(DASHBOARD_PATH)
         yield _sse(
