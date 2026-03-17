@@ -6,15 +6,19 @@ to the browser via Server-Sent Events (SSE).
 """
 
 import asyncio
+import io
 import json
 import os
+import queue
 import re
 import sys
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, Response
+from rich.console import Console as RichConsole
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -22,6 +26,7 @@ from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, Res
 PROJECT_ROOT = str(Path(__file__).parent.parent)
 sys.path.insert(0, PROJECT_ROOT)
 
+import run as run_module
 from run import run_strategy_logic
 
 # On Vercel the filesystem is read-only except /tmp/.
@@ -87,8 +92,39 @@ async def run_strategy():
 
         yield _sse({"log": ">>> Initializing VoiceCare.ai AI Growth Engine…", "type": "info"})
 
+        log_queue: queue.Queue = queue.Queue()
+        done_event = threading.Event()
+
+        class _QueueWriter(io.TextIOBase):
+            def write(self, s):
+                for line in s.splitlines():
+                    stripped = _strip_ansi(line).strip()
+                    if stripped:
+                        log_queue.put(stripped)
+                return len(s)
+            def flush(self):
+                pass
+
+        capture_console = RichConsole(file=_QueueWriter(), no_color=True, highlight=False, width=120)
+
+        def _run():
+            old = run_module.console
+            run_module.console = capture_console
+            try:
+                run_strategy_logic()
+            finally:
+                run_module.console = old
+                done_event.set()
+
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, run_strategy_logic)
+        loop.run_in_executor(None, _run)
+
+        while not done_event.is_set() or not log_queue.empty():
+            try:
+                line = log_queue.get_nowait()
+                yield _sse({"log": line, "type": _classify(line)})
+            except queue.Empty:
+                await asyncio.sleep(0.05)
 
         ready = os.path.exists(DASHBOARD_PATH)
         yield _sse(
